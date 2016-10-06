@@ -1,6 +1,5 @@
 ## CSX460 
-
-=======
+----------
 
 This is the repository for *Practical Machine Learning with R* (CSX460) at the University of California, Berkeley. The most recent class is/was `Fall 2016`. 
 
