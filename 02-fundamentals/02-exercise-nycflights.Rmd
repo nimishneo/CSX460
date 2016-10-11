@@ -1,7 +1,7 @@
 ---
 title: "Assingment NYC Flight Data"
-author: "Your Name Here"
-date: "October 5, 2016"
+author: "Nimish Kulkarni"
+date: "October 10, 2016"
 output: html_document
 ---
 
@@ -17,17 +17,24 @@ Your job is to create a "rectangular" table useful for modeling from flight data
 
 Using the `readr` package read the `flights` data.
 
+you can set the working directory running the command
+setwd("Path-to/CSX460/02-fundamentals")
+
 ```{r}
+library(dplyr)
+library(readr)
 
-
+flightsData <- read_delim("data/flights.csv",delim = ",")
 ```
 
+flightsData contains 336776 observations and 19 variables
 ## Numeric Variables  
 
 Plot a histogram of arrival delays and departure delays 
 
 ```{r}
-
+hist(flightsData$arr_delay, breaks=30, col="red")
+hist(flightsData$dep_delay, breaks=50, col="green")
 ```
 
 ## Scatterplot
@@ -35,7 +42,8 @@ Plot a histogram of arrival delays and departure delays
 Plot a scatterplot of date vs arrival delay 
 
 ```{r}
-
+plot(flightsData$day, flightsData$arr_delay, main="Date vs Arrival Delay",
+   xlab="Date ", ylab="Arrival Delay ", pch=19) 
 ```
 
 
@@ -55,7 +63,9 @@ Create a `table` of occurences of origin airports and carrier.
 **Read** in the other data sets. Use methods to join the data together to create a single table containing one record per row.  (HINT: see `?data.table` or `?dplyr::join`)
 
 ```{r}
-
+airportsData <- read_delim("data/airports.csv",delim = ",")
+planesData <- read_delim("data/planes.csv",delim = ",")
+weatherData <- read_delim("data/weather.csv",delim = ",")
 ```
 
 
