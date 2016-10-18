@@ -1,12 +1,23 @@
 ---
 title: "NYCFlights: Arrival Delay Regression Model"
-author: "[Your Name]"
-date: "[Today's Date]"
+author: "Nimish Kulkarni"
+date: "Oct 16, 2016"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(ggplot2)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(dplyr)
+library(data.table)
+library(mlbench)
+library(caret)
+library(sqldf)
 ```
 
 # NYCFlights Model
@@ -18,6 +29,31 @@ for building a model. Describe/Explain each of the steps and show all work in co
 ## Step 1: Collect Data 
 
 ```{r "Step 1: Collect Data" }
+# Data Frames
+
+flights  <- "../data/flights.csv" %>% read_csv 
+planes   <- read_csv("../data/planes.csv")
+airports <- read_csv("../data/airports.csv") 
+weather  <- read_csv("../data/weather.csv")
+
+
+# Merging Data Frames
+YX <- flights 
+
+## planes
+YX <- merge( YX, planes, by="tailnum", all.x = TRUE )
+
+## airports  
+YX <- merge(YX, airports, by.x="origin", by.y="faa", all.x=TRUE, suffixes=c("", ".origin")  )
+YX <- merge(YX, airports, by.x="dest", by.y="faa", all.x=TRUE, suffixes=c("", ".dest")  )
+
+## weather
+# weather$date <- ymd(weather$year, weather$month, weather$day)
+YX <- 
+  merge( flights, weather, by=c("origin","year","month","day","hour"), all.x=TRUE, suffixes=c('',".weather") )
+
+## clearing the console screen
+cat("\014")
 
 ```
 
@@ -28,6 +64,19 @@ One of the things not done in the MLwR text is a pairwise comparison between the
 
 
 ```{r "Step 2: Explore and Prep The Data" }
+str(YX)
+colnames(YX)
+summary(YX$arr_delay)
+hist(log(YX$arr_delay))
+YX[c("year","month","day","hour","dep_time","sched_dep_time","dep_delay","arr_time","sched_arr_time","arr_delay","air_time","distance","minute","temp", "dewp", "humid","wind_dir","wind_speed","wind_gust","precip","pressure","visib")][is.na(
+  YX[c("year","month","day","hour","dep_time","sched_dep_time","dep_delay","arr_time","sched_arr_time","arr_delay","air_time","distance","minute","temp", "dewp", "humid","wind_dir","wind_speed","wind_gust","precip","pressure","visib")]
+)] <- 0
+
+cor(YX[c("dep_time","sched_dep_time","dep_delay","arr_time","sched_arr_time","arr_delay","air_time","distance","temp","dewp","humid","wind_dir","wind_speed","wind_gust","precip","pressure","visib")])
+
+# removing arr_delay to see which features are highly correlated
+correlationMatrix = cor(YX[c("dep_time","sched_dep_time","dep_delay","arr_time","sched_arr_time","air_time","distance","temp","dewp","humid","wind_dir","wind_speed","wind_gust","precip","pressure","visib")])
+print(correlationMatrix)
 
 ```
 
@@ -35,6 +84,10 @@ One of the things not done in the MLwR text is a pairwise comparison between the
 
 ```{r "Step 3: Train The Model" }
 
+# train the model
+model1 <- lm(YX$arr_delay~ YX$temp + YX$dewp + YX$humid + YX$dep_time, data=YX)
+model2 <- lm(YX$arr_delay~ YX$dep_time + YX$sched_dep_time + YX$dep_delay + YX$arr_time+ YX$sched_arr_time + YX$air_time + YX$distance+ YX$temp + YX$wind_dir + YX$wind_speed + YX$wind_gust + YX$precip + YX$pressure + YX$visib + YX$dewp + YX$humid , data=YX)
+model3 <- lm(YX$arr_delay~ YX$dep_time + YX$sched_dep_time + YX$dep_delay + YX$arr_time + YX$air_time + YX$distance+ YX$temp + YX$wind_dir + YX$precip + YX$pressure + YX$visib + YX$dewp, data=YX)
 ```
 
 ## Step 4: Evaluate Performance
@@ -42,7 +95,9 @@ One of the things not done in the MLwR text is a pairwise comparison between the
 Evaluating performance is a crutial step, that has yet to be treated well by the MLwR. Think about some of the tools that you have for evaluating performance.  Choose one and articulate why you have chosen it.
 
 ```{r "Step 4: Evaluate Performance" }
-
+summary.lm(model1)
+summary.lm(model2)
+summary.lm(model3)
 ```
 
 
@@ -59,3 +114,4 @@ Show some steps for improving model performance.
 
 Is this a good model?  (Write your answer here.)
 
+It seems to be a good initial model since we got R squared as 0.8456
