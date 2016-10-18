@@ -106,6 +106,8 @@ summary.lm(model3)
 Show some steps for improving model performance.
 
 ```{r "Step 5: Improve Performance" }
+# Removing features from model with high p value. 
+# after removal we improved from 0.079 to 0.84 
 
 ```
 
