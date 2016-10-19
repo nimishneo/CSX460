@@ -542,13 +542,15 @@ model3 &lt;- lm(YX$arr_delay~ YX$dep_time + YX$sched_dep_time + YX$dep_delay + Y
 <h2>Step 5: Improve Performance</h2>
 <p>Show some steps for improving model performance.</p>
 <pre class="r"><code># Removing features from model with high p value. 
-# after removal we improved from 0.079 to 0.84 </code></pre>
+# after removal we improved from 0.079 to 0.84 
+# Model 1 - considering only 4 parameters temp dew humid and dep time
+# Model 2 - considering all the parameters that we think are relevant
+# Model 3 - removing the parameters with high p values</code></pre>
 </div>
 </div>
 <div id="question" class="section level1">
 <h1>Question:</h1>
-<p>Is this a good model? (Write your answer here.)</p>
-<p>It seems to be a good initial model since we got R squared as 0.8456</p>
+<p>Is this a good model? (Write your answer here.) It seems to be a good initial model since we got R squared as 0.8456</p>
 </div>
 
 

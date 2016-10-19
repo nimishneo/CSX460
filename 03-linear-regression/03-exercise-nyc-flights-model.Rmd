@@ -108,12 +108,13 @@ Show some steps for improving model performance.
 ```{r "Step 5: Improve Performance" }
 # Removing features from model with high p value. 
 # after removal we improved from 0.079 to 0.84 
-
+# Model 1 - considering only 4 parameters temp dew humid and dep time
+# Model 2 - considering all the parameters that we think are relevant
+# Model 3 - removing the parameters with high p values
 ```
 
 
 # Question:
 
 Is this a good model?  (Write your answer here.)
-
 It seems to be a good initial model since we got R squared as 0.8456
