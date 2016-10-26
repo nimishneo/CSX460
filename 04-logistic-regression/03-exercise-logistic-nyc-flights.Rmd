@@ -13,11 +13,16 @@ library(ggplot2)
 library(magrittr)
 library(lubridate)
 library(stringr)
+library(plotly)
+library(knitr)
 library(dplyr)
 library(data.table)
 library(mlbench)
 library(caret)
 library(sqldf)
+library(gplots)
+library(ROCR)
+library(magrittr)
 ```
 
 
@@ -133,6 +138,8 @@ yx[c("year","month","day","hour","dep_time","sched_dep_time","dep_delay","arr_ti
 
 logModel2 <- glm( yx$arr_delay_new ~ yx$dep_time + yx$sched_dep_time + yx$dep_delay + yx$arr_time + yx$air_time + yx$distance+ yx$temp + yx$wind_dir + yx$precip + yx$pressure + yx$visib + yx$dewp)
 
+# model for part B , preparing it here
+logModel3 <- glm( yx$arr_delay_new ~ yx$dep_time + yx$sched_dep_time + yx$temp + yx$wind_dir + yx$precip + yx$pressure + yx$dewp)
 
 ```
 
@@ -143,8 +150,37 @@ Think about some of the tools that you have for evaluating performance.  Choose 
 ```{r "Step 4: Evaluate Performance" }
 summary(logModel1)
 summary(logModel2)
-confint(logModel1)
-confint(logModel2)
+#confint(logModel1)
+#confint(logModel2)
+
+predictions <- predict(logModel1, newdata = yx, type="response")
+labels <- yx$arr_delay_new
+
+require(ROCR)
+# Prepare data for plotting
+
+pred <- with(yx, prediction(predictions, labels))
+perf <- performance(pred, measure="acc", x.measure="cutoff")
+
+# Get the cutoff for the best accuracy
+bestAccInd <- which.max(perf@"y.values"[[1]])
+bestMsg <- paste("best accuracy=", perf@"y.values"[[1]][bestAccInd], 
+              " at cutoff=", round(perf@"x.values"[[1]][bestAccInd], 4))
+
+plot(perf, sub=bestMsg)
+
+# deleting the labels from data
+yx <- subset(yx, select = -c(arr_delay_new) )
+
+
+predictions <- predict(logModel1, newdata = yx, type="response")
+predictions <- round(predictions)
+mean(predictions==labels)
+
+predictions <- predict(logModel2, newdata = yx, type="response")
+predictions <- round(predictions)
+mean(predictions==labels)
+
 ```
 
  
@@ -153,7 +189,37 @@ confint(logModel2)
 Show some steps for improving model performance.
 
 ```{r "Step 5: Improve Performance" }
+# Model 2 has the highest accuracy of 90% around threshold of 0.3
+library(ggplot2)
+threshold <- seq(from=0.1,to=0.9,by=0.01)
+j <- 1
+accuracy <-c()
+for(i in threshold){
+  predictions <- predict(logModel2,newdata=yx,type = 'response')
+  predictions <- ifelse(predictions>i,1,0)
+  accuracy[j] <- mean(predictions==labels)
+  j=j+1
+  
+}
+model_accuracy <- data.frame(threshold,accuracy)
+(ggplot(model_accuracy,aes(x=threshold,y = accuracy))+geom_line()+geom_point()+ggtitle("Threshold vs Accuracy"))
 
+kable(model_accuracy %>% arrange(desc(accuracy)))
+
+# rounding.func <- function(x) {
+#   if (x >= 0.3){
+#         return (1)
+#   }
+#   else
+#         return (0)
+# }
+
+
+# using threshold value
+predictions <- predict(logModel2, newdata = yx, type="response")
+predictions[predictions < 0.32] <- 0
+predictions[predictions >= 0.32] <- 1
+mean(predictions==labels)    
 ```
 
 
@@ -161,14 +227,21 @@ Show some steps for improving model performance.
 
 Is this a good model?  (Write your answer here.)
 
+Yes, I believe this model2 is decent for basic predictions. Around 0.32 threshold we get 90 % Accuracy.
 
 # PART B:
 
 Your model should be good at explaining tardiness. Now, assume that your job is to predict arrival delays a month in advance. You can no longer use all the features in your model. Retrain your model using only features that will be *known* only a month in advance of the departure time.  Show all steps as above.
 
 ```{r "PART B" }
-logModel3 <- glm( yx$arr_delay_new ~ yx$dep_time + yx$sched_dep_time + yx$temp + yx$wind_dir + yx$precip + yx$pressure + yx$dewp)
+
+# all the steps are as above except building the model.
+# I have removed the variables which I believe cannot be predicted before a month.
 
 summary(logModel3)
-confint(logModel3)
+#confint(logModel3)
+
+predictions <- predict(logModel3, newdata = yx, type="response")
+predictions <- round(predictions)
+mean(predictions==labels)
 ```
