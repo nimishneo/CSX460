@@ -1,30 +1,48 @@
 ---
 title: "NYCFlights: Arrival Delay Logictic Model"
-author: "[Your Name]"
-date: "[Today's Date]"
+author: "Nimish Kulkarni"
+date: "23 October 2016"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dtplyr)
+library(readr)
+library(ggplot2)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(dplyr)
+library(data.table)
+library(mlbench)
+library(caret)
+library(sqldf)
 ```
 
 
-## Logsitic and Inverse Logistic Transformation 
+## Logsitic and Inverse Logistic Transformation
 
 - Write an R function for the logistic function. The function should accept a `numeric` vector with values `[-Inf,Inf]` and produce a numeric vector in the the range `[0,1]`.
-
-- Plot the logistic function from  `[-10,10]`
+Plot the logistic function from  `[-10,10]`
 
 - Write a R function for the inverse logistic function. The function should accept a `numeric` vector with values `[0,1]` and prodcuce a numeric vector in the range `[-Inf,Inf]`
-
-- Plot the Inverse Logistic function from `[0,1]`
-
+Plot the Inverse Logistic function from `[0,1]`
 
 **Hint:** For plotting curves see `?graphics::curve` or `?ggplot2::stat_function`
 
 ```{r "Logistic and Inverse Logistic" }
+logistic.func <- function(x) {
+  1 / (1 + exp(-x))
+}
+plot(logistic.func(-10:10))
 
+inv.logistic.func <- function(x) {
+  log(x/(1-x))
+}
+logistic.func(10)
+inv.logistic.func(0.9999546)
+plot(inv.logistic.func(0.1:0.9))
 ```
 
 
@@ -37,7 +55,31 @@ KNIT YOUR DOCUMENT AS *HTML* AND SUBMIT IT AND THE `Rmd` file.
 ## Step 1: Collect Data 
 
 ```{r "Step 1: Collect Data" }
+# Data Frames
 
+flights  <- "../data/flights.csv" %>% read_csv 
+planes   <- read_csv("../data/planes.csv")
+airports <- read_csv("../data/airports.csv") 
+weather  <- read_csv("../data/weather.csv")
+
+
+# Merging Data Frames
+YX <- flights 
+
+## planes
+YX <- merge( YX, planes, by="tailnum", all.x = TRUE, suffixes=c("", ".pl") )
+
+## airports  
+YX <- merge(YX, airports, by.x="origin", by.y="faa", all.x=TRUE, suffixes=c("", ".origin")  )
+YX <- merge(YX, airports, by.x="dest", by.y="faa", all.x=TRUE, suffixes=c("", ".dest")  )
+
+## weather
+# weather$date <- ymd(weather$year, weather$month, weather$day)
+YX <- 
+  merge( YX, weather, by=c("origin","year","month","day","hour"), all.x=TRUE, suffixes=c('',".weather") )
+
+## clearing the console screen
+cat("\014")
 ```
 
 ## Step 2: Explore and Prep The Data
@@ -47,12 +89,50 @@ One of the things not done in the MLwR text is a pairwise comparison between the
 
 
 ```{r "Step 2: Explore and Prep The Data" }
+yx <- copy(YX)
+
+#copying arr_delay as new column to perform transformations
+yx$arr_delay_new <- yx$arr_delay
+
+summary(yx$arr_delay_new)
+
+# handling NA values , thinking to replace with mean but since mean is less than 15 minutes
+# assigning 0 class
+yx["arr_delay_new"][is.na(yx["arr_delay_new"])] <- 0
+
+# if arr_delay < 15 minutes then 0
+yx["arr_delay_new"][yx["arr_delay_new"] < 15] <- 0
+
+# assigning classes if arr_delay >= 15 minutes then 1
+yx["arr_delay_new"][yx["arr_delay_new"] >= 15] <- 1
+
+
+
+# commenting test code
+# count = 0
+# for (val in yx$arr_delay_new) {
+#     if(val >= 15)  {
+#       print(val)
+#       count = count+1
+#     }
+# }
+# print(count)
+
 
 ```
 
 ## Step 3:  Train The Model
 
 ```{r "Step 3: Train The Model" }
+logModel1 <- glm( yx$arr_delay_new ~ yx$temp + yx$dewp + yx$humid + yx$dep_time , data = yx, family = "binomial")
+
+
+yx[c("year","month","day","hour","dep_time","sched_dep_time","dep_delay","arr_time","sched_arr_time","air_time","distance","minute","temp", "dewp", "humid","wind_dir","wind_speed","wind_gust","precip","pressure","visib")][is.na(
+  yx[c("year","month","day","hour","dep_time","sched_dep_time","dep_delay","arr_time","sched_arr_time","air_time","distance","minute","temp", "dewp", "humid","wind_dir","wind_speed","wind_gust","precip","pressure","visib")]
+)] <- 0
+
+logModel2 <- glm( yx$arr_delay_new ~ yx$dep_time + yx$sched_dep_time + yx$dep_delay + yx$arr_time + yx$air_time + yx$distance+ yx$temp + yx$wind_dir + yx$precip + yx$pressure + yx$visib + yx$dewp)
+
 
 ```
 
@@ -61,7 +141,10 @@ One of the things not done in the MLwR text is a pairwise comparison between the
 Think about some of the tools that you have for evaluating performance.  Choose one and articulate why you have chosen it.
 
 ```{r "Step 4: Evaluate Performance" }
-
+summary(logModel1)
+summary(logModel2)
+confint(logModel1)
+confint(logModel2)
 ```
 
  
@@ -83,3 +166,9 @@ Is this a good model?  (Write your answer here.)
 
 Your model should be good at explaining tardiness. Now, assume that your job is to predict arrival delays a month in advance. You can no longer use all the features in your model. Retrain your model using only features that will be *known* only a month in advance of the departure time.  Show all steps as above.
 
+```{r "PART B" }
+logModel3 <- glm( yx$arr_delay_new ~ yx$dep_time + yx$sched_dep_time + yx$temp + yx$wind_dir + yx$precip + yx$pressure + yx$dewp)
+
+summary(logModel3)
+confint(logModel3)
+```

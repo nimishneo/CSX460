@@ -41,7 +41,7 @@ weather  <- read_csv("../data/weather.csv")
 YX <- flights 
 
 ## planes
-YX <- merge( YX, planes, by="tailnum", all.x = TRUE )
+YX <- merge( YX, planes, by="tailnum", all.x = TRUE, suffixes=c("", ".pl") )
 
 ## airports  
 YX <- merge(YX, airports, by.x="origin", by.y="faa", all.x=TRUE, suffixes=c("", ".origin")  )
@@ -50,7 +50,7 @@ YX <- merge(YX, airports, by.x="dest", by.y="faa", all.x=TRUE, suffixes=c("", ".
 ## weather
 # weather$date <- ymd(weather$year, weather$month, weather$day)
 YX <- 
-  merge( flights, weather, by=c("origin","year","month","day","hour"), all.x=TRUE, suffixes=c('',".weather") )
+  merge( YX, weather, by=c("origin","year","month","day","hour"), all.x=TRUE, suffixes=c('',".weather") )
 
 ## clearing the console screen
 cat("\014")
@@ -98,6 +98,10 @@ Evaluating performance is a crutial step, that has yet to be treated well by the
 summary.lm(model1)
 summary.lm(model2)
 summary.lm(model3)
+model1 %>% resid %>% .^2  %>%  mean  %>% sqrt
+model2 %>% resid %>% .^2  %>%  mean  %>% sqrt
+model3 %>% resid %>% .^2  %>%  mean  %>% sqrt
+
 ```
 
 
