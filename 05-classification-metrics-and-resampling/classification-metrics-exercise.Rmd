@@ -1,9 +1,29 @@
 ---
 title: "Classification Metrics"
-author: "Christopher Brown"
-date: 
+author: "Nimish Kulkarni"
+date: "Nov 8, 2016"
 output: html_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dtplyr)
+library(readr)
+library(ggplot2)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(plotly)
+library(knitr)
+library(dplyr)
+library(data.table)
+library(mlbench)
+library(caret)
+library(sqldf)
+library(gplots)
+library(ROCR)
+cat("\014")
+```
 
 The German Credit Data (data/german_credit); 
 
@@ -15,7 +35,51 @@ The German Credit Data (data/german_credit);
 Show All Work! 
 
 ```{r}
+# Reading the data 
 
+credit_data   <- read_csv("../data/german_credit.csv")
+yx <- copy(credit_data)
+str(yx)
+
+# Partitioning the model in test and training sets
+# since we already know size of data set dividing test set to 300 and training set to 700
+
+test_set=sample(1:nrow(yx),size=300)
+train_set=(1:nrow(yx))[-test_set]
+
+
+#Training model for creditability
+
+# MODEL 1
+
+logisticModel1 <- glm(Creditability ~ `Account Balance` + `Payment Status of Previous Credit` + Purpose + `Length of current employment` + `Sex & Marital Status`, family=binomial, data = yx[train_set,])
+
+# Testing the model on test data set partition
+fitLog <- predict(logisticModel1, type="response", newdata = yx[test_set,])
+
+pred = prediction( fitLog, yx$Creditability[test_set])
+perf <- performance(pred, "tpr", "fpr")
+plot(perf)
+AUCLog1=performance(pred, measure = "auc")@y.values[[1]]
+cat("AUC: ",AUCLog1,"n")
+
+# MODEL 2
+
+logisticModel2 <- glm(Creditability ~ . , family=binomial, data = yx[train_set,])
+
+# Testing the model on test data set partition
+fitLog <- predict(logisticModel2, type="response", newdata = yx[test_set,])
+
+pred = prediction( fitLog, yx$Creditability[test_set])
+
+perf <- performance(pred, "tpr", "fpr")
+plot(perf)
+AUCLog1=performance(pred, measure = "auc")@y.values[[1]]
+cat("AUC: ",AUCLog1,"n")
+
+fitLog <- round(fitLog)
+yp <- fitLog
+yt <- yx$Creditability[test_set]
 
 ```
 
@@ -24,20 +88,78 @@ Using the `predict` function and `test` data, write functions to calculate and
 calculate: 
 
 * Misclassification Rate
-* Prevalence 
 * Accuracy
-* Accuracy
-* Error Rate / Misclassification Rate
-* True Positive Rate  
-* False Positive Rate
-* True Negative Rate  
-* False Negative Rate 
 * Sensitivity 
+* True Positive Rate
+* False Positive Rate
+* False Negative Rate 
 * Specificity 
+* True Negative Rate 
+* Prevalence 
+
 * Recall 
 * Precision
 
 ```{r, echo=FALSE}
 
+# Misclassification Rate / Error Rate
+missclassify.func <- function(yp,yt) {
+tab <- table(yp,yt)
+return (1-sum(diag(tab))/sum(tab))
+}
+missClassifyRate <- missclassify.func(yp,yt)
+
+
+
+# Accuracy
+accuracy <- (1 - missClassifyRate)
+
+
+## From Table we can calculate values of TP, TN, FP and FN
+
+TP <- 33
+FP <- 19
+FN <- 50
+TN <- 198
+cat("True  Positives : ", TP)
+cat("False Positives : ", FP)
+cat("False Negatives : ", FN)
+cat("True  Negatives : ", TN)
+cat("Total : ", 300)
+
+cat("Misclassification Rate / Error Rate : ", missClassifyRate)
+cat("Accuracy : ", accuracy)
+
+# Sensitivity or True Positive Rate
+SensitivityRate <- TP / (TP + FN)
+cat("Sensitivity or True Positive Rate : ", SensitivityRate)
+
+# Specificity or True Negative Rate
+SpecificityRate <- TN / (TN + FP)
+cat("Specificity or True Negative Rate : ", SpecificityRate)
+
+# False Positive Rate
+FPR <- (1 - SpecificityRate)
+cat("False Positive Rate : ", FPR)
+
+# False Negative Rate 
+FNR <- (1 - SensitivityRate)
+cat("False Negative Rate : ", FNR)
+
+# Prevalence 
+PrevalenceRate <- (TP + FN) / (TP + FP + TN + FN)
+cat("Prevalence : ", PrevalenceRate)
+
+# Precision
+PrecisionRate <- TP / (TP + FP + TN + FN)
+cat("Precision : ", PrecisionRate)
+
+# Recall
+RecallRate <- TP / (TP + FN)
+cat("Recall : ", RecallRate)
+
+
+# For Observations 
+# confusionMatrix(data = yp, reference = yt)
 
 ```

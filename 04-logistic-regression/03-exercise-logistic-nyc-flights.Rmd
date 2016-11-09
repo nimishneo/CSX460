@@ -1,5 +1,5 @@
 ---
-title: "NYCFlights: Arrival Delay Logictic Model"
+title: "NYCFlights: Arrival Delay Logistic Model"
 author: "Nimish Kulkarni"
 date: "23 October 2016"
 output: html_document
@@ -22,7 +22,7 @@ library(caret)
 library(sqldf)
 library(gplots)
 library(ROCR)
-library(magrittr)
+
 ```
 
 
