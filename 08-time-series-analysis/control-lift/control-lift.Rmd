@@ -1,6 +1,6 @@
 ---
 title: "control-lift-stability"
-author: "Christopher Brown"
+author: "Nimish Kulkarni"
 date: "November 30, 2016"
 output: html_document
 ---
@@ -14,7 +14,48 @@ beta (roll angle) for the hypothetical aircraft.
 
 Show all work:
 
-```r
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(dtplyr)
+library(readr)
+library(ggplot2)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(plotly)
+library(knitr)
+library(dplyr)
+library(data.table)
+library(mlbench)
+library(caret)
+library(sqldf)
+library(gplots)
+library(ROCR)
+library(randomForest)
+cat("\014")
+```
+
+```{r}
+controlData <- readRDS("control-lift.rds", refhook = NULL)
+yx <- copy(controlData)
+
+fit <- lm( yx$cl.stab ~ . , data=yx )
+summary.lm(fit)
+
+fit.higher <- lm( yx$cl.stab ~ poly(yx$alpha.deg,13))
+summary.lm(fit.higher)
+
+smp_size <- floor(0.7 * nrow(yx))
+set.seed(123)
+train_ind <- sample(seq_len(nrow(yx)), size = smp_size)
+train_set <- yx[train_ind, ]
+test_set <- yx[-train_ind, ]
+
+#stepwise command
+set.seed(125)
+rf_default <- train(train_set$cl.stab~., data=train_set, method="rf")
+print(rf_default)
+
 
 ```
 

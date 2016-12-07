@@ -1,7 +1,7 @@
 ---
 title: "Improving Model Perfromance / Tuning Parameters"
-author: "Your Name"
-date: "`r Sys.Date()`"
+author: "Nimish Kulkarni"
+date: "Dec 04, 2016"
 output: html_document
 ---
 
@@ -10,6 +10,8 @@ output: html_document
 
 Generically and regardless of model type, what are the purposes of a model
 tuning parameters?
+
+Often but not always control the variance-bias trade off
 
 ```
 ```
@@ -23,6 +25,98 @@ metric calculated using 10-fold repeated cross-validation with 3 folds.
 Using the rectangular data that you created for the NYCFlights to create a model
 for arr_delay >= 15 minutes.
 
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(dtplyr)
+library(readr)
+library(ggplot2)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(plotly)
+library(knitr)
+library(dplyr)
+library(data.table)
+library(mlbench)
+library(caret)
+library(sqldf)
+library(gplots)
+library(ROCR)
+library(pROC)
+library(randomForest)
+```
+
+```{r setup, include=FALSE}
+#flights  <- "../data/flights.csv" %>% read_csv 
+flights  <- read_csv("../data/flights.csv")
+planes   <- read_csv("../data/planes.csv")
+airports <- read_csv("../data/airports.csv") 
+weather  <- read_csv("../data/weather.csv")
+
+
+# Merging Data Frames
+YX <- flights 
+
+## planes
+YX <- merge( YX, planes, by="tailnum", all.x = TRUE, suffixes=c("", ".pl") )
+
+## airports  
+YX <- merge(YX, airports, by.x="origin", by.y="faa", all.x=TRUE, suffixes=c("", ".origin")  )
+YX <- merge(YX, airports, by.x="dest", by.y="faa", all.x=TRUE, suffixes=c("", ".dest")  )
+
+## weather
+# weather$date <- ymd(weather$year, weather$month, weather$day)
+YX <- 
+  merge( YX, weather, by=c("origin","year","month","day","hour"), all.x=TRUE, suffixes=c('',".weather") )
+
+## clearing the console screen
+cat("\014")
+```
+
+```{r}
+# prep data and modify for classification
+
+yx <- copy(YX)
+#yx["arr_delay"][is.na(yx["arr_delay"])] <- 0
+
+# if arr_delay < 15 minutes then 0
+yx["arr_delay"][yx["arr_delay"] < 15] <- 0
+
+# assigning classes if arr_delay >= 15 minutes then 1
+yx["arr_delay"][yx["arr_delay"] >= 15] <- 1
+
+yx <- yx[names(yx)[1:49]]
+yx <- data.frame(lapply(yx, as.character), stringsAsFactors=FALSE)
+yx <- data.frame(lapply(yx, as.numeric))
+yx[is.na(yx)] <- 0
+yx$arr_delay <- as.factor(yx$arr_delay)
+
+set.seed(998)
+inTraining <- createDataPartition(yx$arr_delay, p = .7, list = FALSE)
+training <- yx[ inTraining,]
+testing  <- yx[-inTraining,]
+
+feature.names=names(training)
+
+for (f in feature.names) {
+  if (class(training[[f]])=="factor") {
+    levels <- unique(c(training[[f]]))
+    training[[f]] <- factor(training[[f]],
+                   labels=make.names(levels))
+  }
+}
+
+feature.names=names(testing)
+
+for (f in feature.names) {
+  if (class(testing[[f]])=="factor") {
+    levels <- unique(c(testing[[f]]))
+    testing[[f]] <- factor(testing[[f]],
+                   labels=make.names(levels))
+  }
+}
+```
+
 - glm
 - rpart
 - knn
@@ -32,22 +126,60 @@ for arr_delay >= 15 minutes.
 - Two methods of your choice from the Caret Model List (you will need to install any dependencies)
 
 Save the caret objects with the names provided.
+```{r}
+
+myControl <- trainControl(method='cv', number=3, repeats=10, 
+                          returnResamp='none', classProbs=TRUE,
+                          returnData=FALSE, savePredictions=TRUE, 
+                          verboseIter=TRUE, allowParallel=TRUE,
+                          summaryFunction=twoClassSummary)
+
+```
 
 ```{r}
 
 # Your work here.
 
-fit.glm <- ..
-fit.knn <- ..
-fit.rpart <- ..
-fit.rf <- ..
-fit.myown1 <- ..
-fit.myown1 <- ..
+fit.glm <- train(arr_delay~., 
+                  data = training,
+                  method='glm', 
+                  trControl=myControl,  
+                  metric = "ROC",
+                  na.action = na.pass,
+                  preProc = c("center", "scale"))
+fit.knn <- train(arr_delay~., 
+                  data = training,
+                  method='knn', 
+                  trControl=myControl,  
+                  metric = "Kappa",
+                  na.action = na.pass,
+                  preProc = c("range"))
+fit.rpart <- train(arr_delay~., 
+                  data = training,
+                  method='rpart', 
+                  trControl=myControl,  
+                  metric = "ROC",
+                  na.action = na.pass,
+                  preProc = c("center", "scale"))
+fit.rf <- train(arr_delay~., 
+                  data = training,
+                  method='rf', 
+                  trControl=myControl,
+                  metric = "ROC",
+                  na.action = na.pass,
+                  preProc = c("center", "scale"))
+
+#fit.myown1 <- ..
+#fit.myown1 <- ..
 ```
 
 Compare the  models?
 
 Which is best?  Why?
-
+```{r}
+summary(fit.glm)
+summary(fit.knn)
+summary(fit.rpart)
+summary(fit.rf)
 ```
 ```
